@@ -95,7 +95,9 @@ module ActsAsSolr #:nodoc:
     def parse_results(solr_data, options = {})
       results = {
         :docs => [],
-        :total => 0
+        :total => 0,
+        :start => 0,
+        :rows => 10
       }
       
       configuration = {
@@ -107,13 +109,12 @@ module ActsAsSolr #:nodoc:
       configuration.update(options) if options.is_a?(Hash)
 
       ids = solr_data.hits.collect {|doc| doc["#{solr_configuration[:primary_key_field]}"]}.flatten
-      
       result = find_objects(ids, options, configuration)
       
       add_scores(result, solr_data) if configuration[:format] == :objects && options[:scores]
       
       results.update(:facets => solr_data.data['facet_counts']) if options[:facets]
-      results.update({:docs => result, :total => solr_data.total_hits, :max_score => solr_data.max_score, :query_time => solr_data.data['responseHeader']['QTime']})
+      results.update({:docs => result, :total => solr_data.total_hits, :start => solr_data.start, :rows => (options[:limit] || 10), :max_score => solr_data.max_score, :query_time => solr_data.data['responseHeader']['QTime']})
       SearchResults.new(results)
     end
     

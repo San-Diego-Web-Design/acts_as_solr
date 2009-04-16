@@ -57,11 +57,37 @@ module ActsAsSolr #:nodoc:
     def query_time
       @solr_data[:query_time]
     end
-    
+   
+    def offset
+      @solr_data[:start]
+    end
+
+    def per_page
+      @solr_data[:rows]
+    end
+    def current_page
+      (offset / per_page).to_i + 1
+    end
+    def next_page
+      current_page + 1 unless current_page == total_pages
+    end
+    def previous_page
+      current_page - 1 unless current_page == 1
+    end
+    def total_pages
+      total_pages = (total / per_page.to_f).ceil
+      total_pages == 0 ? 1 : total_pages
+    end
+
+    def method_missing(method, *args, &block)
+      results.send(method, *args, &block)
+    end
+
     alias docs results
     alias records results
     alias num_found total
     alias total_hits total
+    alias total_entries total
     alias highest_score max_score
   end
   

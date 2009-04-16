@@ -60,6 +60,10 @@ module ActsAsSolr #:nodoc:
       ActsAsSolr::Post.execute(Solr::Request::Delete.new(:id => solr_ids))
     end
     
+    def solr_delete_all
+      ActsAsSolr::Post.execute(Solr::Request::Delete.new(:query => "#{self.solr_configuration[:type_field]}:#{self.to_s}")) 
+    end
+    
     # Sends the commit command to Solr
     def solr_commit
       ActsAsSolr::Post.execute(Solr::Request::Commit.new)
@@ -81,7 +85,7 @@ module ActsAsSolr #:nodoc:
     
     # Returns the id for the given instance
     def record_id(object)
-      eval "object.#{object.class.primary_key}"
+      object.id
     end
     
   end

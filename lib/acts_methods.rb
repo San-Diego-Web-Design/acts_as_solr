@@ -177,7 +177,7 @@ module ActsAsSolr #:nodoc:
         :facets => nil,
         :boost => nil,
         :if => "true",
-        :offline => false
+        :offline => Proc.new { RAILS_ENV == 'test'}
       }  
       self.solr_configuration = {
         :type_field => "type_s",
@@ -264,7 +264,7 @@ module ActsAsSolr #:nodoc:
     def type_for_field(field)
       if configuration[:facets] && configuration[:facets].include?(field)
         :facet
-      elsif column = columns_hash[field.to_s]
+      elsif column = (columns_hash[field.to_s] rescue nil)
         case column.type
         when :string then :text
         when :datetime then :date

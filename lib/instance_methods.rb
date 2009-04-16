@@ -75,6 +75,7 @@ module ActsAsSolr #:nodoc:
       
       add_includes(doc)
       logger.debug doc.to_xml
+      
       doc
     end
     
