@@ -47,8 +47,8 @@ module ActsAsSolr
         connection = Solr::Connection.new(url)
         return connection.send(request)
       rescue 
-        raise "Couldn't connect to the Solr server at #{url}. #{$!}"
-        false
+        ActiveRecord::Base::logger.warn "Couldn't connect to the Solr server at #{url}. #{$!}"
+        nil
       end
     end
   end
