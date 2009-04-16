@@ -12,6 +12,30 @@
 
 <Configure id="Server" class="org.mortbay.jetty.Server">
 
+
+      <!-- =========================================================== -->
+      <!-- Create an output stream named "ServerLog" as a target for   -->
+      <!-- logging which would normally be done on STDOUT and/or       -->
+      <!-- STDERR.                                                     -->
+      <!-- =========================================================== -->
+
+      <New id="ServerLog" class="java.io.PrintStream">
+        <Arg>
+          <New class="java.io.FileOutputStream">
+            <Arg><SystemProperty name="jetty.logs" default="."/>/jetty.server.log</Arg>
+            <Arg type="boolean">true</Arg>
+          </New>
+        </Arg>
+      </New>
+
+      <!-- =========================================================== -->
+      <!-- Redirect STDOUT and STDERR (at the VM level) to ServerLog   -->
+      <!-- =========================================================== -->
+
+      <Call class="java.lang.System" name="setErr"><Arg><Ref id="ServerLog"/></Arg></Call>
+      <Call class="java.lang.System" name="setOut"><Arg><Ref id="ServerLog"/></Arg></Call>
+
+
     <!-- =========================================================== -->
     <!-- Server Thread Pool                                          -->
     <!-- =========================================================== -->
