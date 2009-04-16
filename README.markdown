@@ -61,17 +61,14 @@ Basic Usage
 ======
 To test code that uses `acts_as_solr` you must start a Solr server for the test environment. You can do that with `rake solr:start RAILS_ENV=test`
 
-However, if you would like to mock out Solr calls so that a Solr server is not needed (and your tests will run much faster), just add this to your `test_helper.rb` or similar:
+acts_as_solr does not perform real-time indexing during tests to make your tests run faster.  If you want to assert that your searches are performing correctly, you must build the index within your test like so:
 
 <pre><code>
-class ActsAsSolr::Post
-  def self.execute(request)
-    true
-  end
+def test_my_search_works
+  Model.rebuild_index
+  assert Model.find_by_solr(query)
 end
-</pre></code>
-
-([via](http://www.subelsky.com/2007/10/actsassolr-capistranhttpwwwbloggercomim.html#c1646308013209805416))
+</code></pre>
 
 Authors
 ======
