@@ -66,7 +66,7 @@ module ActsAsSolr #:nodoc:
     #
     def find_by_solr(query, options={})
       data = parse_query(query, options)
-      return parse_results(data, options) if data
+      return parse_results(data, options)
     end
     
     # Finds instances of a model and returns an array with the ids:
@@ -75,7 +75,7 @@ module ActsAsSolr #:nodoc:
     # 
     def find_id_by_solr(query, options={})
       data = parse_query(query, options)
-      return parse_results(data, {:format => :ids}) if data
+      return parse_results(data, {:format => :ids})
     end
     
     # This method can be used to execute a search across multiple models:
@@ -140,53 +140,58 @@ module ActsAsSolr #:nodoc:
     # 
     def count_by_solr(query, options = {})        
       data = parse_query(query, options)
-      data.total_hits
+      data ? data.total_hits : 0
     end
             
     # It's used to rebuild the Solr index for a specific model. 
     #  Book.rebuild_solr_index
     # 
-    # If batch_size is greater than 0, adds will be done in batches.
-    # NOTE: If using sqlserver, be sure to use a finder with an explicit order.
-    # Non-edge versions of rails do not handle pagination correctly for sqlserver
-    # without an order clause.
-    # 
     # If a finder block is given, it will be called to retrieve the items to index.
     # This can be very useful for things such as updating based on conditions or
     # using eager loading for indexed associations.
-    def rebuild_solr_index(batch_size=0, &finder)
+    def rebuild_solr_index(batch_size=1000, &finder)
+      solr_delete_all
+      solr_commit
+      
       finder ||= lambda { |ar, options| ar.find(:all, options.merge({:order => self.primary_key})) }
       start_time = Time.now
 
-      if batch_size > 0
-        items_processed = 0
-        limit = batch_size
-        offset = 0
-        begin
-          iteration_start = Time.now
-          items = finder.call(self, {:limit => limit, :offset => offset})
-          add_batch = items.collect { |content| content.to_solr_doc }
-    
-          if items.size > 0
-            solr_add add_batch
-            solr_commit
-          end
-    
-          items_processed += items.size
-          last_id = items.last.id if items.last
-          time_so_far = Time.now - start_time
-          iteration_time = Time.now - iteration_start         
-          logger.info "#{Process.pid}: #{items_processed} items for #{self.name} have been batch added to index in #{'%.3f' % time_so_far}s at #{'%.3f' % (items_processed / time_so_far)} items/sec (#{'%.3f' % (items.size / iteration_time)} items/sec for the last batch). Last id: #{last_id}"
-          offset += items.size
-        end while items.nil? || items.size > 0
-      else
-        items = finder.call(self, {})
-        items.each { |content| content.solr_save }
-        items_processed = items.size
-      end
+      items_processed = 0
+      limit = batch_size
+      offset = 0
+      begin
+        iteration_start = Time.now
+        items = finder.call(self, {:limit => limit, :offset => offset})
+        add_batch = items.collect { |content| content.to_solr_doc }
+  
+        if items.size > 0
+          solr_add add_batch
+          solr_commit
+        end
+  
+        items_processed += items.size
+        last_id = items.last.id if items.last
+        time_so_far = Time.now - start_time
+        iteration_time = Time.now - iteration_start         
+        logger.info "#{Process.pid}: #{items_processed} items for #{self.name} have been batch added to index in #{'%.3f' % time_so_far}s at #{'%.3f' % (items_processed / time_so_far)} items/sec (#{'%.3f' % (items.size / iteration_time)} items/sec for the last batch). Last id: #{last_id}"
+        offset += items.size
+      end while items.nil? || items.size > 0
       solr_optimize
       logger.info items_processed > 0 ? "Index for #{self.name} has been rebuilt" : "Nothing to index for #{self.name}"
     end
+
+    # perform set of operations without interacting with the solr server.
+    # useful for performing bulk operations followed by a full reindex operation
+    # see rebuild_solr_index
+    def solr_offline(&block)
+      begin
+        offline_config = self.configuration[:offline]
+        self.configuration[:offline] = true
+
+        yield
+      ensure
+        self.configuration[:offline] = offline_config
+      end
+    end
   end
-  
 end
